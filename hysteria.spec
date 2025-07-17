@@ -23,7 +23,7 @@ efficiently in adverse network environments. It's known for its high performance
 and ability to bypass network restrictions.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q
 
 %build
 # Using the build script provided in the source
