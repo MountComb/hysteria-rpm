@@ -17,6 +17,8 @@ BuildRequires:  make
 BuildRequires:  python3
 BuildRequires:  systemd
 
+%global debug_package %{nil}
+
 %description
 Hysteria is a powerful, feature-packed proxy and relay tool designed to work
 efficiently in adverse network environments. It's known for its high performance
