@@ -31,9 +31,12 @@ jobs:
             VERSION=$(echo "${{ github.event.inputs.version }}" | sed 's/^v//')
           else
             echo "Fetching the latest release from apernet/hysteria..."
-            # Fetch latest release tag (e.g., 'v2.3.1') from GitHub API and remove 'v' prefix
+            # Fetch latest release tag (e.g., 'app/v2.6.2') from GitHub API
             LATEST_TAG=$(curl -s "https://api.github.com/repos/apernet/hysteria/releases/latest" | jq -r .tag_name)
-            VERSION=${LATEST_TAG#v}
+            # Handle potential prefixes like 'app/' by taking only the part after the last slash
+            CLEAN_TAG=${LATEST_TAG##*/}
+            # Remove the 'v' prefix from the cleaned tag (e.g., v2.6.2 -> 2.6.2)
+            VERSION=${CLEAN_TAG#v}
           fi
           
           if [[ -z "$VERSION" ]]; then
@@ -52,7 +55,7 @@ jobs:
       - name: Download source tarball
         run: |
           # The tag in the URL needs the 'v' prefix (e.g., v2.3.1)
-          DOWNLOAD_URL="https://github.com/apernet/hysteria/archive/refs/tags/v${{ env.VERSION }}.tar.gz"
+          DOWNLOAD_URL="https://github.com/apernet/hysteria/archive/refs/tags/app/v${{ env.VERSION }}.tar.gz"
           OUTPUT_PATH="~/rpmbuild/SOURCES/hysteria-${{ env.VERSION }}.tar.gz"
           echo "Downloading from $DOWNLOAD_URL"
           wget "$DOWNLOAD_URL" -O "$OUTPUT_PATH"
