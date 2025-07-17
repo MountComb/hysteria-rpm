@@ -56,7 +56,7 @@ install -D -m 644 %{SOURCE2} %{buildroot}%{_sysconfdir}/hysteria.yaml
 %systemd_postun_with_restart hysteria.service
 
 %files
-%license LICENSE
+%license LICENSE.md
 %doc README.md
 %{_bindir}/hysteria
 %{_unitdir}/hysteria.service
