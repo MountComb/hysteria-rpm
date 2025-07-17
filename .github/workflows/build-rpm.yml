@@ -27,24 +27,32 @@ jobs:
         id: get_version
         run: |
           if [[ -n "${{ github.event.inputs.version }}" ]]; then
-            # Use user-provided version, remove 'v' prefix if present
-            VERSION=$(echo "${{ github.event.inputs.version }}" | sed 's/^v//')
+            # User-provided version. Assume it doesn't have prefixes like 'app/'.
+            VERSION_INPUT=$(echo "${{ github.event.inputs.version }}" | sed 's/^v//')
+            FULL_TAG="app/v$VERSION_INPUT"
           else
             echo "Fetching the latest release from apernet/hysteria..."
-            # Fetch latest release tag (e.g., 'app/v2.6.2') from GitHub API
-            LATEST_TAG=$(curl -s "https://api.github.com/repos/apernet/hysteria/releases/latest" | jq -r .tag_name)
-            # Handle potential prefixes like 'app/' by taking only the part after the last slash
-            CLEAN_TAG=${LATEST_TAG##*/}
-            # Remove the 'v' prefix from the cleaned tag (e.g., v2.6.2 -> 2.6.2)
-            VERSION=${CLEAN_TAG#v}
+            # Fetch latest release tag (e.g., 'app/v2.6.2')
+            FULL_TAG=$(curl -s "https://api.github.com/repos/apernet/hysteria/releases/latest" | jq -r .tag_name)
           fi
-          
+
+          if [[ -z "$FULL_TAG" ]]; then
+            echo "::error::Could not determine the tag to build."
+            exit 1
+          fi
+
+          # Extract version from the tag (e.g., app/v2.6.2 -> 2.6.2)
+          CLEAN_TAG=${FULL_TAG##*/} # Get part after last '/' -> v2.6.2
+          VERSION=${CLEAN_TAG#v}   # Get part after 'v' -> 2.6.2
+
           if [[ -z "$VERSION" ]]; then
-            echo "::error::Could not determine the version to build."
+            echo "::error::Could not parse version from tag '$FULL_TAG'."
             exit 1
           fi
           
-          echo "Building Hysteria version: $VERSION"
+          echo "Building from tag: $FULL_TAG"
+          echo "Parsed version: $VERSION"
+          echo "FULL_TAG=$FULL_TAG" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Create RPM build directories and copy spec
@@ -54,16 +62,14 @@ jobs:
 
       - name: Download source tarball
         run: |
-          # The tag in the URL needs the 'v' prefix (e.g., v2.3.1)
-          DOWNLOAD_URL="https://github.com/apernet/hysteria/archive/refs/tags/app/v${{ env.VERSION }}.tar.gz"
-          OUTPUT_PATH="~/rpmbuild/SOURCES/hysteria-${{ env.VERSION }}.tar.gz"
+          DOWNLOAD_URL="https://github.com/apernet/hysteria/archive/refs/tags/${{ env.FULL_TAG }}.tar.gz"
           echo "Downloading from $DOWNLOAD_URL"
-          wget "$DOWNLOAD_URL" -O "$OUTPUT_PATH"
+          wget "$DOWNLOAD_URL" -O ~/rpmbuild/SOURCES/hysteria-${{ env.VERSION }}.tar.gz
           
       - name: Build RPM
         run: |
           # Pass the version to rpmbuild, which will override the placeholder in the spec file
-          rpmbuild -ba ~/rpmbuild/SPECS/hysteria.spec --define "version ${{ env.VERSION }}" --define "_topdir %(echo $HOME)/rpmbuild"
+          rpmbuild -ba ~/rpmbuild/SPECS/hysteria.spec --define "version ${{ env.VERSION }}" --define "_topdir ~/rpmbuild"
 
       - name: Upload RPM as artifact
         uses: actions/upload-artifact@v4
