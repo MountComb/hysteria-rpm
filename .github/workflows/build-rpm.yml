@@ -55,10 +55,12 @@ jobs:
           echo "FULL_TAG=$FULL_TAG" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - name: Create RPM build directories and copy spec
+      - name: Prepare build environment and spec file
         run: |
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           cp hysteria.spec ~/rpmbuild/SPECS/
+          sed -i "s/^Version:.*$/Version:        ${{ env.VERSION }}/" ~/rpmbuild/SPECS/hysteria.spec
+          echo "Spec file updated with version ${{ env.VERSION }}"
 
       - name: Download source tarball
         run: |
@@ -69,7 +71,7 @@ jobs:
       - name: Build RPM
         run: |
           # Pass the version to rpmbuild, which will override the placeholder in the spec file
-          rpmbuild -ba ~/rpmbuild/SPECS/hysteria.spec --define "version ${{ env.VERSION }}" --define "_topdir ~/rpmbuild"
+          rpmbuild -ba ~/rpmbuild/SPECS/hysteria.spec --define "_topdir ~/rpmbuild"
 
       - name: Upload RPM as artifact
         uses: actions/upload-artifact@v4
