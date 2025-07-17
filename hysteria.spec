@@ -23,11 +23,13 @@ efficiently in adverse network environments. It's known for its high performance
 and ability to bypass network restrictions.
 
 %prep
-%setup -q
+%setup -q -n hysteria-app-v%{version}
+
+git init
 
 %build
 # Using the build script provided in the source
-python3 hyperbole.py build -r
+HY_APP_VERSION=v%{version} python3 hyperbole.py build -r
 
 %install
 install -D -m 755 build/hysteria-v%{version}-linux-amd64 %{buildroot}%{_bindir}/hysteria
