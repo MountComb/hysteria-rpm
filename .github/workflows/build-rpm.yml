@@ -61,6 +61,9 @@ jobs:
           cp hysteria.spec ~/rpmbuild/SPECS/
           sed -i "s/^Version:.*$/Version:        ${{ env.VERSION }}/" ~/rpmbuild/SPECS/hysteria.spec
           echo "Spec file updated with version ${{ env.VERSION }}"
+          cp hysteria.service ~/rpmbuild/SOURCES/
+          cp hysteria.yaml ~/rpmbuild/SOURCES/
+          echo "Copied service and config files to SOURCES directory"
 
       - name: Download source tarball
         run: |
