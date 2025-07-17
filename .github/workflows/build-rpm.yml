@@ -71,7 +71,7 @@ jobs:
       - name: Build RPM
         run: |
           # Pass the version to rpmbuild, which will override the placeholder in the spec file
-          rpmbuild -ba ~/rpmbuild/SPECS/hysteria.spec --define "_topdir ~/rpmbuild"
+          rpmbuild -ba ~/rpmbuild/SPECS/hysteria.spec
 
       - name: Upload RPM as artifact
         uses: actions/upload-artifact@v4
