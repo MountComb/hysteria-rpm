@@ -32,7 +32,7 @@ git init
 HY_APP_VERSION=v%{version} python3 hyperbole.py build -r
 
 %install
-install -D -m 755 build/hysteria-v%{version}-linux-amd64 %{buildroot}%{_bindir}/hysteria
+install -D -m 755 build/hysteria-linux-amd64 %{buildroot}%{_bindir}/hysteria
 
 %files
 %license LICENSE
