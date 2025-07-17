@@ -1,0 +1,69 @@
+name: Build Hysteria RPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Hysteria version to build (e.g., 2.3.1). Leave empty for latest.'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    name: Build RPM on AlmaLinux 9
+    runs-on: ubuntu-latest
+    container:
+      image: almalinux:9
+    
+    steps:
+      - name: Install Dependencies
+        run: |
+          dnf install -y rpm-build golang git make python3 createrepo_c curl jq
+          
+      - name: Checkout spec file from this repo
+        uses: actions/checkout@v4
+
+      - name: Determine Hysteria Version
+        id: get_version
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            # Use user-provided version, remove 'v' prefix if present
+            VERSION=$(echo "${{ github.event.inputs.version }}" | sed 's/^v//')
+          else
+            echo "Fetching the latest release from apernet/hysteria..."
+            # Fetch latest release tag (e.g., 'v2.3.1') from GitHub API and remove 'v' prefix
+            LATEST_TAG=$(curl -s "https://api.github.com/repos/apernet/hysteria/releases/latest" | jq -r .tag_name)
+            VERSION=${LATEST_TAG#v}
+          fi
+          
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::Could not determine the version to build."
+            exit 1
+          fi
+          
+          echo "Building Hysteria version: $VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Create RPM build directories and copy spec
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          cp hysteria.spec ~/rpmbuild/SPECS/
+
+      - name: Download source tarball
+        run: |
+          # The tag in the URL needs the 'v' prefix (e.g., v2.3.1)
+          DOWNLOAD_URL="https://github.com/apernet/hysteria/archive/refs/tags/v${{ env.VERSION }}.tar.gz"
+          OUTPUT_PATH="~/rpmbuild/SOURCES/hysteria-${{ env.VERSION }}.tar.gz"
+          echo "Downloading from $DOWNLOAD_URL"
+          wget "$DOWNLOAD_URL" -O "$OUTPUT_PATH"
+          
+      - name: Build RPM
+        run: |
+          # Pass the version to rpmbuild, which will override the placeholder in the spec file
+          rpmbuild -ba ~/rpmbuild/SPECS/hysteria.spec --define "version ${{ env.VERSION }}" --define "_topdir %(echo $HOME)/rpmbuild"
+
+      - name: Upload RPM as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hysteria-rpm-${{ env.VERSION }}
+          path: ~/rpmbuild/RPMS/x86_64/hysteria-*.rpm
